@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deadlock Simulator</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --panel-bg: #16213e;
+            --accent-color: #0f3460;
+            --text-color: #e7e7e7;
+            --highlight: #4cc9f0;
+            --error: #e94560;
+            --success: #4ade80;
+            --process-color: #4361ee;
+            --resource-color: #f72585;
+            --button-bg: #293b5f;
+            --button-hover: #3a5088;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 10px 0 20px 0;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            color: var(--highlight);
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .dashboard {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            gap: 20px;
+            flex: 1;
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-panel {
+            flex: 0 1 300px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .simulation-panel {
+            flex: 2 1 500px;
+            display: flex;
+            flex-direction: column;
+            min-height: 400px;
+        }
+
+        .log-panel {
+            flex: 1 1 300px;
+            display: flex;
+            flex-direction: column;
+            max-height: 100%;
+            height: 900px;
+            /* atau ukuran yang kamu mau */
+            overflow-y: auto;
+            /* membuat scroll vertikal */
+        }
+
+        #log-content {
+            padding-right: 10px;
+            /* agar isi tidak menempel ketika scroll */
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--accent-color);
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group-title {
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            color: var(--highlight);
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background-color: var(--button-bg);
+            color: var(--text-color);
+            border: none;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+            background-color: var(--button-hover);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button.primary {
+            background-color: var(--highlight);
+            color: #111;
+            font-weight: bold;
+            grid-column: span 2;
+        }
+
+        button.alert {
+            background-color: var(--error);
+            color: white;
+        }
+
+        button.success {
+            background-color: var(--success);
+            color: #111;
+        }
+
+        select,
+        .speed-control {
+            background-color: var(--accent-color);
+            color: var(--text-color);
+            border: none;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+        }
+
+        .speed-control input {
+            flex: 1;
+            margin: 0 10px;
+        }
+
+        #simulation-canvas {
+            flex: 1;
+            min-height: 300px;
+            border-radius: 6px;
+            background-color: var(--accent-color);
+            overflow: hidden;
+            position: relative;
+        }
+
+        #log-content {
+            flex: 1;
+            background-color: var(--accent-color);
+            border-radius: 6px;
+            padding: 15px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            height: 400px;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            border-left: 3px solid transparent;
+            padding-left: 8px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .log-entry.info {
+            border-left-color: var(--highlight);
+        }
+
+        .log-entry.error {
+            border-left-color: var(--error);
+        }
+
+        .log-entry.success {
+            border-left-color: var(--success);
+        }
+
+        .log-timestamp {
+            color: #888;
+            font-size: 0.8rem;
+            margin-right: 5px;
+        }
+
+        .node {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            z-index: 10;
+        }
+
+        .node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+        }
+
+        .process {
+            background-color: var(--process-color);
+        }
+
+        .resource {
+            background-color: var(--resource-color);
+        }
+
+        .edge {
+            position: absolute;
+            pointer-events: none;
+            z-index: 10 !important;
+        }
+
+        .edge.deadlock {
+            stroke: var(--error);
+            stroke-width: 3;
+            stroke-dasharray: none;
+            animation: pulse 1.5s infinite;
+        }
+
+        .edge.request {
+            stroke: var(--highlight);
+            stroke-width: 2;
+            stroke-dasharray: 5, 5;
+        }
+
+        .edge.allocation {
+            stroke: var(--text-color);
+            stroke-width: 2;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            padding: 8px 15px;
+            border-radius: 20px;
+            background-color: var(--panel-bg);
+            opacity: 0;
+            transition: opacity 0.3s, background-color 0.3s;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .status-indicator.show {
+            opacity: 1;
+        }
+
+        .status-indicator.deadlock {
+            background-color: var(--error);
+        }
+
+        .status-indicator.normal {
+            background-color: var(--success);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+            background-color: currentColor;
+            animation: blink 1s infinite;
+        }
+
+        /* Floating elements styles */
+        .floating-element {
+            position: absolute;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            font-size: 1.2rem;
+            opacity: 0.25;
+            pointer-events: none;
+            z-index: 0;
+            animation: float linear infinite;
+        }
+
+        .floating-element.binary {
+            color: #4cc9f0;
+            text-shadow: 0 0 8px rgba(76, 201, 240, 0.4);
+        }
+
+        .floating-element.symbol {
+            color: #f72585;
+            text-shadow: 0 0 8px rgba(247, 37, 133, 0.4);
+        }
+
+        .floating-element.number {
+            color: #4ade80;
+            text-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 0.25;
+            }
+
+            50% {
+                opacity: 0.12;
+            }
+
+            100% {
+                transform: translateY(-100vh) rotate(180deg);
+                opacity: 0;
+            }
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin-top: 15px;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.8rem;
+        }
+
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+            margin-right: 8px;
+        }
+
+        @keyframes pulse {
+            0% {
+                stroke-width: 3;
+            }
+
+            50% {
+                stroke-width: 5;
+            }
+
+            100% {
+                stroke-width: 3;
+            }
+        }
+
+        @keyframes blink {
+            0% {
+                opacity: 0.6;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.6;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                flex-direction: column;
+            }
+
+            .panel {
+                flex: 1 1 auto;
+            }
+
+            .btn-group {
+                grid-template-columns: 1fr;
+            }
+
+            button.primary {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Deadlock Simulation Dashboard</h1>
+        <div class="subtitle">Visualize and understand resource allocation deadlocks in operating systems</div>
+    </header>
+
+    <div class="dashboard">
+        <div class="panel control-panel">
+            <div class="panel-title">Control Panel</div>
+
+            <div class="control-group">
+                <div class="control-group-title">Resource Allocation</div>
+                <div class="btn-group">
+                    <button id="request-btn">Request Resource</button>
+                    <button id="release-btn">Release Resource</button>
+                </div>
+
+                <select id="process-select">
+                    <option value="P1">Process P1</option>
+                    <option value="P2">Process P2</option>
+                    <option value="P3">Process P3</option>
+                    <option value="P4">Process P4</option>
+                </select>
+
+                <select id="resource-select">
+                    <option value="R1">Resource R1</option>
+                    <option value="R2">Resource R2</option>
+                    <option value="R3">Resource R3</option>
+                </select>
+
+            </div>
+
+            <div class="control-group">
+                <div class="control-group-title">Simulation Controls</div>
+                <div class="btn-group">
+                    <button id="step-btn">Step Forward</button>
+                    <button id="detect-btn" class="alert">Detect Deadlock</button>
+                </div>
+
+                <button id="auto-btn" class="primary" style="margin-bottom:10px;">Start Auto Simulation</button>
+
+                <div class="speed-control">
+                    <span>Slow</span>
+                    <input type="range" id="speed-slider" min="1" max="10" value="5">
+                    <span>Fast</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-group-title">Scenario</div>
+                <div class="btn-group">
+                    <button id="reset-btn">Reset Simulation</button>
+                    <button id="deadlock-scenario-btn">Create Deadlock</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel simulation-panel">
+            <div class="panel-title">Simulation View</div>
+            <div id="simulation-canvas">
+                <div class="status-indicator" id="status-indicator">
+                    <div class="status-dot"></div>
+                    <span id="status-text">System running normally</span>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--process-color)"></div>
+                    <span>Process</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--resource-color)"></div>
+                    <span>Resource</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--text-color); height: 3px;"></div>
+                    <span>Allocation</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--highlight); height: 3px;"></div>
+                    <span>Request</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--error); height: 3px;"></div>
+                    <span>Deadlock</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel log-panel">
+            <div class="panel-title">Activity Log</div>
+            <div id="log-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // Simulation state
+        let simulationState = {
+            processes: ['P1', 'P2', 'P3', 'P4'],
+            resources: ['R1', 'R2', 'R3'],
+            allocations: [],
+            requests: [],
+            deadlockCycle: [],
+            isRunning: false,
+            speed: 5
+        };
+
+        // Node positions
+        const nodePositions = {
+            P1: { x: 150, y: 80 },
+            P2: { x: 300, y: 80 },
+            P3: { x: 300, y: 230 },
+            P4: { x: 150, y: 230 },
+            R1: { x: 80, y: 150 },
+            R2: { x: 230, y: 150 },
+            R3: { x: 370, y: 150 }
+        };
+
+        // DOM Elements
+        const canvas = document.getElementById('simulation-canvas');
+        const logContent = document.getElementById('log-content');
+        const statusIndicator = document.getElementById('status-indicator');
+        const statusText = document.getElementById('status-text');
+
+        // Create floating elements
+        function createFloatingElements() {
+            const elements = [
+                // Binary numbers
+                { text: '0', type: 'binary' },
+                { text: '1', type: 'binary' },
+                { text: '01', type: 'binary' },
+                { text: '10', type: 'binary' },
+                { text: '101', type: 'binary' },
+                { text: '010', type: 'binary' },
+                { text: '1101', type: 'binary' },
+                { text: '0110', type: 'binary' },
+                // Symbols
+                { text: '{', type: 'symbol' },
+                { text: '}', type: 'symbol' },
+                { text: '<', type: 'symbol' },
+                { text: '>', type: 'symbol' },
+                { text: '/', type: 'symbol' },
+                { text: '\\', type: 'symbol' },
+                { text: '|', type: 'symbol' },
+                { text: '*', type: 'symbol' },
+                { text: '+', type: 'symbol' },
+                { text: '=', type: 'symbol' },
+                { text: '#', type: 'symbol' },
+                { text: '@', type: 'symbol' },
+                { text: '&', type: 'symbol' },
+                { text: '%', type: 'symbol' },
+                { text: '~', type: 'symbol' },
+                { text: '^', type: 'symbol' },
+                // Hex numbers
+                { text: '0x', type: 'number' },
+                { text: 'A7', type: 'number' },
+                { text: 'FF', type: 'number' },
+                { text: '2E', type: 'number' },
+                { text: 'B4', type: 'number' },
+                { text: '3C', type: 'number' },
+                { text: '9D', type: 'number' },
+                // Regular numbers
+                { text: '42', type: 'number' },
+                { text: '256', type: 'number' },
+                { text: '512', type: 'number' },
+                { text: '128', type: 'number' },
+                { text: '64', type: 'number' }
+            ];
+
+            setInterval(() => {
+                const element = elements[Math.floor(Math.random() * elements.length)];
+                const floatingEl = document.createElement('div');
+                floatingEl.className = `floating-element ${element.type}`;
+                floatingEl.textContent = element.text;
+
+                const startX = Math.random() * canvas.offsetWidth;
+                const duration = 8 + Math.random() * 12;
+
+                floatingEl.style.left = startX + 'px';
+                floatingEl.style.bottom = '0';
+                floatingEl.style.animationDuration = duration + 's';
+                floatingEl.style.fontSize = (0.7 + Math.random() * 0.9) + 'rem';
+
+                canvas.appendChild(floatingEl);
+
+                setTimeout(() => {
+                    floatingEl.remove();
+                }, duration * 1000);
+            }, 1500);
+        }
+
+        // Initialize UI
+        function initializeSimulation() {
+            canvas.innerHTML = '';
+            canvas.appendChild(statusIndicator);
+
+            simulationState.processes.forEach(process => {
+                createNode(process, 'process', nodePositions[process]);
+            });
+
+            simulationState.resources.forEach(resource => {
+                createNode(resource, 'resource', nodePositions[resource]);
+            });
+
+            logContent.innerHTML = '';
+            addLogEntry('Simulation initialized. Ready to start.', 'info');
+            updateEdges();
+        }
+
+        function createNode(id, type, position) {
+            const node = document.createElement('div');
+            node.className = `node ${type}`;
+            node.id = id;
+            node.textContent = id;
+            node.style.left = `${position.x - 30}px`;
+            node.style.top = `${position.y - 30}px`;
+
+            node.addEventListener('click', () => {
+                if (type === 'process') {
+                    document.getElementById('process-select').value = id;
+                } else {
+                    document.getElementById('resource-select').value = id;
+                }
+                addLogEntry(`Selected ${type} ${id}`, 'info');
+            });
+
+            canvas.appendChild(node);
+            return node;
+        }
+
+        function updateEdges() {
+            document.querySelectorAll('.edge').forEach(edge => edge.remove());
+
+            simulationState.allocations.forEach(allocation => {
+                drawEdge(allocation.from, allocation.to, 'allocation');
+            });
+
+            simulationState.requests.forEach(request => {
+                drawEdge(request.from, request.to, 'request');
+            });
+
+            highlightDeadlockCycle();
+        }
+
+        function drawEdge(fromId, toId, type) {
+            const fromNode = document.getElementById(fromId);
+            const toNode = document.getElementById(toId);
+
+            if (!fromNode || !toNode) return;
+
+            const fromRect = fromNode.getBoundingClientRect();
+            const toRect = toNode.getBoundingClientRect();
+            const canvasRect = canvas.getBoundingClientRect();
+
+            const fromX = fromRect.left - canvasRect.left + fromRect.width / 2;
+            const fromY = fromRect.top - canvasRect.top + fromRect.height / 2;
+            const toX = toRect.left - canvasRect.left + toRect.width / 2;
+            const toY = toRect.top - canvasRect.top + toRect.height / 2;
+
+            const angle = Math.atan2(toY - fromY, toX - fromX);
+            const nodeRadius = 30;
+            const adjustedToX = toX - nodeRadius * Math.cos(angle);
+            const adjustedToY = toY - nodeRadius * Math.sin(angle);
+            const adjustedFromX = fromX + nodeRadius * Math.cos(angle);
+            const adjustedFromY = fromY + nodeRadius * Math.sin(angle);
+
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.classList.add('edge', type);
+            svg.style.cssText = 'left:0;top:0;width:100%;height:100%;position:absolute;';
+
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', adjustedFromX);
+            line.setAttribute('y1', adjustedFromY);
+            line.setAttribute('x2', adjustedToX);
+            line.setAttribute('y2', adjustedToY);
+            line.setAttribute('marker-end', 'url(#arrowhead)');
+
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            marker.setAttribute('id', 'arrowhead');
+            marker.setAttribute('markerWidth', '10');
+            marker.setAttribute('markerHeight', '7');
+            marker.setAttribute('refX', '0');
+            marker.setAttribute('refY', '3.5');
+            marker.setAttribute('orient', 'auto');
+
+            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+            polygon.setAttribute('points', '0 0, 10 3.5, 0 7');
+            polygon.setAttribute('fill', type === 'request' ? '#4cc9f0' : type === 'allocation' ? '#e7e7e7' : '#e94560');
+
+            marker.appendChild(polygon);
+            defs.appendChild(marker);
+            svg.appendChild(defs);
+            svg.appendChild(line);
+
+            svg.dataset.from = fromId;
+            svg.dataset.to = toId;
+
+            canvas.appendChild(svg);
+            return svg;
+        }
+
+        function highlightDeadlockCycle() {
+            document.querySelectorAll('.edge.deadlock').forEach(edge => {
+                edge.classList.remove('deadlock');
+            });
+
+            if (simulationState.deadlockCycle.length > 0) {
+                for (let i = 0; i < simulationState.deadlockCycle.length; i++) {
+                    const currentNode = simulationState.deadlockCycle[i];
+                    const nextNode = simulationState.deadlockCycle[(i + 1) % simulationState.deadlockCycle.length];
+
+                    document.querySelectorAll('.edge').forEach(edge => {
+                        if (edge.dataset.from === currentNode && edge.dataset.to === nextNode) {
+                            edge.classList.add('deadlock');
+                        }
+                    });
+                }
+                showStatus('Deadlock detected!', 'deadlock');
+            } else {
+                showStatus('System running normally', 'normal');
+            }
+        }
+
+        function showStatus(message, type) {
+            statusText.textContent = message;
+            statusIndicator.className = 'status-indicator show ' + type;
+
+            if (type !== 'deadlock') {
+                setTimeout(() => {
+                    statusIndicator.classList.remove('show');
+                }, 5000);
+            }
+        }
+
+        function addLogEntry(message, type = 'info') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+
+            const timestamp = document.createElement('span');
+            timestamp.className = 'log-timestamp';
+
+            const now = new Date();
+            timestamp.textContent = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
+
+            entry.appendChild(timestamp);
+            entry.appendChild(document.createTextNode(message));
+
+            logContent.appendChild(entry);
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+
+        function requestResource(process, resource) {
+            const alreadyAllocated = simulationState.allocations.some(a => a.from === resource && a.to === process);
+
+            if (alreadyAllocated) {
+                addLogEntry(`${process} already has ${resource} allocated to it.`, 'error');
+                return false;
+            }
+
+            const alreadyRequested = simulationState.requests.some(r => r.from === process && r.to === resource);
+
+            if (alreadyRequested) {
+                addLogEntry(`${process} already requested ${resource}.`, 'error');
+                return false;
+            }
+
+            const isAllocated = simulationState.allocations.some(a => a.from === resource);
+
+            if (isAllocated) {
+                simulationState.requests.push({ from: process, to: resource });
+                addLogEntry(`${process} is waiting for ${resource}`, 'info');
+            } else {
+                simulationState.allocations.push({ from: resource, to: process });
+                addLogEntry(`${resource} allocated to ${process}`, 'success');
+            }
+
+            updateEdges();
+            return true;
+        }
+
+        function releaseResource(process, resource) {
+            const allocationIndex = simulationState.allocations.findIndex(a => a.from === resource && a.to === process);
+
+            if (allocationIndex === -1) {
+                addLogEntry(`${resource} is not allocated to ${process}.`, 'error');
+                return false;
+            }
+
+            simulationState.allocations.splice(allocationIndex, 1);
+            addLogEntry(`${process} released ${resource}`, 'success');
+
+            const pendingRequest = simulationState.requests.find(r => r.to === resource);
+
+            if (pendingRequest) {
+                const requestIndex = simulationState.requests.findIndex(r => r.from === pendingRequest.from && r.to === pendingRequest.to);
+                simulationState.requests.splice(requestIndex, 1);
+                simulationState.allocations.push({ from: resource, to: pendingRequest.from });
+                addLogEntry(`${resource} allocated to waiting process ${pendingRequest.from}`, 'success');
+            }
+
+            updateEdges();
+            simulationState.deadlockCycle = [];
+            return true;
+        }
+
+        function detectDeadlock() {
+            addLogEntry('Running deadlock detection algorithm...', 'info');
+
+            const graph = {};
+            simulationState.processes.forEach(p => { graph[p] = []; });
+            simulationState.resources.forEach(r => { graph[r] = []; });
+
+            simulationState.allocations.forEach(allocation => {
+                graph[allocation.from].push(allocation.to);
+            });
+
+            simulationState.requests.forEach(request => {
+                graph[request.from].push(request.to);
+            });
+
+            const visited = {};
+            const recStack = {};
+            let cycle = [];
+
+            function detectCycle(node, path = []) {
+                if (!visited[node]) {
+                    visited[node] = true;
+                    recStack[node] = true;
+                    path.push(node);
+
+                    for (const neighbor of graph[node]) {
+                        if (!visited[neighbor] && detectCycle(neighbor, [...path])) {
+                            return true;
+                        } else if (recStack[neighbor]) {
+                            const cycleStart = path.indexOf(neighbor);
+                            cycle = path.slice(cycleStart);
+                            cycle.push(neighbor);
+                            return true;
+                        }
+                    }
+                }
+                recStack[node] = false;
+                return false;
+            }
+
+            let deadlockFound = false;
+            for (const process of simulationState.processes) {
+                if (detectCycle(process)) {
+                    deadlockFound = true;
+                    break;
+                }
+            }
+
+            if (deadlockFound) {
+                simulationState.deadlockCycle = cycle;
+                addLogEntry(`Deadlock detected! Cycle: ${cycle.join(' → ')}`, 'error');
+                highlightDeadlockCycle();
+                return true;
+            } else {
+                simulationState.deadlockCycle = [];
+                addLogEntry('No deadlock detected. System is in a safe state.', 'success');
+                highlightDeadlockCycle();
+                return false;
+            }
+        }
+
+        function createDeadlockScenario() {
+            resetSimulation();
+            addLogEntry('Creating a deadlock scenario...', 'info');
+
+            simulationState.allocations.push({ from: 'R1', to: 'P1' });
+            simulationState.allocations.push({ from: 'R2', to: 'P2' });
+            simulationState.allocations.push({ from: 'R3', to: 'P3' });
+            simulationState.requests.push({ from: 'P1', to: 'R2' });
+            simulationState.requests.push({ from: 'P2', to: 'R3' });
+            simulationState.requests.push({ from: 'P3', to: 'R1' });
+
+            addLogEntry('Deadlock scenario created. Run detection to find it.', 'info');
+            updateEdges();
+        }
+
+        function resetSimulation() {
+            simulationState.allocations = [];
+            simulationState.requests = [];
+            simulationState.deadlockCycle = [];
+            simulationState.isRunning = false;
+
+            updateEdges();
+
+            document.getElementById('auto-btn').textContent = 'Start Auto Simulation';
+            document.getElementById('auto-btn').classList.remove('alert');
+            document.getElementById('auto-btn').classList.add('primary');
+
+            addLogEntry('Simulation reset to initial state', 'info');
+        }
+
+        function toggleAutoSimulation() {
+            simulationState.isRunning = !simulationState.isRunning;
+            const autoBtn = document.getElementById('auto-btn');
+
+            if (simulationState.isRunning) {
+                autoBtn.textContent = 'Stop Auto Simulation';
+                autoBtn.classList.remove('primary');
+                autoBtn.classList.add('alert');
+                runAutoSimulation();
+                addLogEntry('Auto simulation started', 'info');
+            } else {
+                autoBtn.textContent = 'Start Auto Simulation';
+                autoBtn.classList.remove('alert');
+                autoBtn.classList.add('primary');
+                addLogEntry('Auto simulation stopped', 'info');
+            }
+        }
+
+        function runAutoSimulation() {
+            if (!simulationState.isRunning) return;
+
+            const randomProcess = simulationState.processes[Math.floor(Math.random() * simulationState.processes.length)];
+            const randomResource = simulationState.resources[Math.floor(Math.random() * simulationState.resources.length)];
+            const action = Math.random() > 0.5 ? 'request' : 'release';
+
+            if (action === 'request') {
+                requestResource(randomProcess, randomResource);
+            } else {
+                releaseResource(randomProcess, randomResource);
+            }
+
+            if (Math.random() > 0.7) {
+                detectDeadlock();
+            }
+
+            const speed = simulationState.speed;
+            const delay = 2000 - (speed * 180);
+
+            setTimeout(runAutoSimulation, delay);
+        }
+
+        function stepSimulation() {
+            const selectedProcess = document.getElementById('process-select').value;
+            const selectedResource = document.getElementById('resource-select').value;
+
+            const hasResource = simulationState.allocations.some(a => a.from === selectedResource && a.to === selectedProcess);
+
+            if (hasResource) {
+                releaseResource(selectedProcess, selectedResource);
+            } else {
+                requestResource(selectedProcess, selectedResource);
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('request-btn').addEventListener('click', () => {
+            const process = document.getElementById('process-select').value;
+            const resource = document.getElementById('resource-select').value;
+            requestResource(process, resource);
+        });
+
+        document.getElementById('release-btn').addEventListener('click', () => {
+            const process = document.getElementById('process-select').value;
+            const resource = document.getElementById('resource-select').value;
+            releaseResource(process, resource);
+        });
+
+        document.getElementById('step-btn').addEventListener('click', stepSimulation);
+        document.getElementById('detect-btn').addEventListener('click', detectDeadlock);
+        document.getElementById('auto-btn').addEventListener('click', toggleAutoSimulation);
+        document.getElementById('reset-btn').addEventListener('click', resetSimulation);
+        document.getElementById('deadlock-scenario-btn').addEventListener('click', createDeadlockScenario);
+
+        document.getElementById('speed-slider').addEventListener('input', (e) => {
+            simulationState.speed = parseInt(e.target.value);
+            addLogEntry(`Simulation speed set to ${simulationState.speed}`, 'info');
+        });
+
+        // Initialize the simulation
+        initializeSimulation();
+        createFloatingElements();
+
+        addLogEntry('Welcome to Deadlock Simulator! Create resource allocations and detect deadlocks.', 'info');
+        addLogEntry('Try the "Create Deadlock" button to see a classic deadlock scenario.', 'info');
+    </script>
+</body>
+
+</html>
