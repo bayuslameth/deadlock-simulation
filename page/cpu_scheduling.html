@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPU Scheduling Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d1b2a;
+            --panel: #1b263b;
+            --accent: #415a77;
+            --text: #e0e1dd;
+            --blue: #4361ee;
+            --pink: #f72585;
+            --cyan: #4cc9f0;
+            --green: #4ade80;
+            --red: #e94560;
+            --gray: #778da9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: grid;
+            grid-template-columns: 340px 1fr 340px;
+            grid-template-rows: auto 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        header {
+            grid-column: 1 / 4;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            color: var(--cyan);
+        }
+
+        .subtitle {
+            opacity: 0.8;
+            font-size: 0.95rem;
+        }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-panel {
+            grid-column: 1;
+        }
+
+        .simulation-panel {
+            grid-column: 2;
+        }
+
+        .log-panel {
+            grid-column: 3;
+            overflow: hidden;
+        }
+
+        .panel-title {
+            font-size: 1.1rem;
+            color: var(--cyan);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--accent);
+        }
+
+        button {
+            background: #293b5f;
+            color: var(--text);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #3a5088;
+        }
+
+        button.primary {
+            background: var(--cyan);
+            color: #000;
+            font-weight: 600;
+        }
+
+        button.red {
+            background: var(--red);
+        }
+
+        select,
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            background: var(--accent);
+            border: none;
+            border-radius: 6px;
+            color: var(--text);
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .gantt {
+            margin-top: 20px;
+            height: 80px;
+            background: var(--accent);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+        }
+
+        .gantt-bar {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            position: relative;
+        }
+
+        .gantt-label {
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+
+        th,
+        td {
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid var(--accent);
+        }
+
+        th {
+            background: var(--accent);
+            color: var(--cyan);
+        }
+
+        #log-content {
+            flex: 1;
+            background: var(--accent);
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+
+        .log-entry {
+            margin-bottom: 6px;
+            padding-left: 10px;
+            border-left: 3px solid var(--cyan);
+        }
+
+        .log-entry.error {
+            border-left-color: var(--red);
+        }
+
+        .log-entry.success {
+            border-left-color: var(--green);
+        }
+
+        .timestamp {
+            color: var(--gray);
+            font-size: 0.8rem;
+            margin-right: 6px;
+        }
+
+        .burger {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(27, 38, 59, 0.8);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--accent);
+        }
+
+        .burger:hover {
+            background: rgba(65, 90, 119, 0.6);
+        }
+
+        .burger span {
+            width: 26px;
+            height: 3px;
+            background: var(--cyan);
+            margin: 3px 0;
+            border-radius: 3px;
+            transition: 0.3s;
+        }
+
+        .burger.active span:nth-child(1) {
+            transform: rotate(45deg) translate(6px, 6px);
+        }
+
+        .burger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .burger.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -7px);
+        }
+
+        /* Menu Panel */
+        .menu-panel {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100vh;
+            background: rgba(27, 38, 59, 0.97);
+            backdrop-filter: blur(15px);
+            border-right: 1px solid var(--accent);
+            padding: 90px 30px 30px;
+            transition: left 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            z-index: 999;
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .menu-panel.open {
+            left: 0;
+        }
+
+        .menu-title {
+            font-size: 1.5rem;
+            color: var(--cyan);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .menu-item {
+            padding: 16px 20px;
+            margin: 10px 0;
+            background: rgba(65, 90, 119, 0.3);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .menu-item:hover {
+            background: var(--cyan);
+            color: #000;
+            transform: translateX(10px);
+        }
+
+        .menu-item.active {
+            background: var(--cyan);
+            color: #000;
+            font-weight: 600;
+        }
+
+        /* Overlay */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 998;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Main Content (sama seperti sebelumnya) */
+        header {
+            text-align: center;
+            
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Burger Menu -->
+    <div class="burger" id="burger">
+        <span></span><span></span><span></span>
+    </div>
+
+    <div class="menu-panel" id="menu">
+        <div class="menu-title">OS Simulators</div>
+        <div class="menu-item" onclick="window.location.href='../index.html'">Deadlock Simulator</div>
+        <div class="menu-item active" onclick="window.location.href='/page/cpu_scheduling.html'">CPU Scheduling
+            Simulator</div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <header>
+        <h1 class="h1">CPU Scheduling Simulator</h1>
+        <div class="subtitle">FCFS  SJF  Round Robin (Quantum = 3)</div>
+    </header>
+
+    <div class="panel control-panel">
+        <div class="panel-title">Pilih Algoritma</div>
+        <select id="algorithm">
+            <option value="fcfs">First Come First Served (FCFS)</option>
+            <option value="sjf">Shortest Job First (Non-Preemptive)</option>
+            <option value="rr">Round Robin (Quantum = 3)</option>
+        </select>
+
+        <div class="panel-title" style="margin-top:20px;">Burst Time (5 Proses)</div>
+        <div class="input-grid">
+            <input type="number" id="bt0" placeholder="P1" min="1" value="9">
+            <input type="number" id="bt1" placeholder="P2" min="1" value="6">
+            <input type="number" id="bt2" placeholder="P3" min="1" value="3">
+            <input type="number" id="bt3" placeholder="P4" min="1" value="6">
+            <input type="number" id="bt4" placeholder="P5" min="1" value="3">
+        </div>
+
+        <button class="primary" id="run-btn" style="margin-top:20px;">Jalankan Simulasi</button>
+        <button id="reset-btn">Reset</button>
+    </div>
+
+    <div class="panel simulation-panel">
+        <div class="panel-title">Gantt Chart</div>
+        <div id="gantt-chart" class="gantt"></div>
+
+        <div class="panel-title" style="margin-top:20px;">Hasil Eksekusi</div>
+        <div id="result-table"></div>
+    </div>
+
+    <div class="panel log-panel">
+        <div class="panel-title">Activity Log</div>
+        <div id="log-content"></div>
+    </div>
+
+    <script>
+        const burger = document.getElementById('burger');
+        const menu = document.getElementById('menu');
+        const overlay = document.getElementById('overlay');
+
+        burger.addEventListener('click', () => {
+            burger.classList.toggle('active');
+            menu.classList.toggle('open');
+            overlay.classList.toggle('active');
+        });
+
+        overlay.addEventListener('click', () => {
+            burger.classList.remove('active');
+            menu.classList.remove('open');
+            overlay.classList.remove('active');
+        });
+
+        const colors = ['#4361ee', '#7209b7', '#f72585', '#4cc9f0', '#4ade80'];
+
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log-entry ${type}`;
+            const now = new Date();
+            const time =
+                `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+            div.innerHTML = `<span class="timestamp">[${time}]</span> ${msg}`;
+            document.getElementById('log-content').appendChild(div);
+            div.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest'
+            });
+        }
+
+        function getBurstTimes() {
+            const bt = [];
+            for (let i = 0; i < 5; i++) {
+                const val = parseInt(document.getElementById(`bt${i}`).value);
+                if (isNaN(val) || val <= 0) throw "Semua burst time harus diisi dengan angka > 0";
+                bt.push(val);
+            }
+            return bt;
+        }
+
+        // FCFS
+        function fcfs(bt) {
+            const processes = bt.map((b, i) => ({
+                pid: i + 1,
+                bt: b,
+                start: 0,
+                end: 0
+            }));
+            let time = 0;
+            const gantt = [];
+
+            processes.forEach(p => {
+                p.start = time;
+                time += p.bt;
+                p.end = time;
+                gantt.push({
+                    pid: p.pid,
+                    start: p.start,
+                    end: p.end
+                });
+            });
+            return {
+                processes,
+                gantt
+            };
+        }
+
+        // SJF Non-Preemptive
+        function sjf(bt) {
+            const processes = bt.map((b, i) => ({
+                pid: i + 1,
+                bt: b,
+                remaining: b,
+                start: -1,
+                end: -1
+            }));
+            let time = 0;
+            const gantt = [];
+            const ready = [];
+
+            while (processes.some(p => p.remaining > 0)) {
+                // Tambahkan semua proses yang sudah "tiba" (semua tiba di waktu 0)
+                processes.forEach(p => {
+                    if (p.remaining > 0 && !ready.includes(p)) ready.push(p);
+                });
+
+                if (ready.length === 0) break;
+
+                // Urutkan berdasarkan burst time terkecil
+                ready.sort((a, b) => a.remaining - b.remaining);
+                const current = ready.shift();
+
+                if (current.start === -1) current.start = time;
+                time += current.bt;
+                current.end = time;
+                current.remaining = 0;
+
+                gantt.push({
+                    pid: current.pid,
+                    start: current.start,
+                    end: current.end
+                });
+            }
+            return {
+                processes,
+                gantt
+            };
+        }
+
+        // ROUND ROBIN – DIPERBAIKI & LEBIH BAGUS
+        function roundRobin(bt, quantum = 3) {
+            const processes = bt.map((b, i) => ({
+                pid: i + 1,
+                bt: b,
+                remaining: b
+            }));
+            const queue = [];
+            let time = 0;
+            const gantt = []; // untuk chart
+            const steps = []; // untuk log & tabel RR
+
+            // Semua proses tiba di waktu 0
+            processes.forEach(p => queue.push(p));
+
+            while (queue.length > 0) {
+                const p = queue.shift();
+                const executed = Math.min(quantum, p.remaining);
+                const prevRemaining = p.remaining;
+
+                p.remaining -= executed;
+                time += executed;
+
+                // Simpan langkah untuk ditampilkan
+                steps.push({
+                    pid: p.pid,
+                    executed: executed,
+                    prevRemaining: prevRemaining,
+                    newRemaining: p.remaining,
+                    time: time
+                });
+
+                // Simpan segmen gantt (dengan info tambahan untuk tampilan)
+                gantt.push({
+                    pid: p.pid,
+                    start: time - executed,
+                    end: time,
+                    executed: executed,
+                    prev: prevRemaining,
+                    remaining: p.remaining
+                });
+
+                // Jika masih ada sisa, masukkan kembali ke antrian
+                if (p.remaining > 0) {
+                    queue.push(p);
+                }
+            }
+
+            // Hitung waiting & turnaround time untuk tabel akhir
+            processes.forEach(p => {
+                const completedAt = gantt.filter(seg => seg.pid === p.pid).reduce((sum, seg) => sum + seg.executed,
+                    0);
+                const lastSegment = gantt.filter(seg => seg.pid === p.pid).pop();
+                p.completion = lastSegment.end;
+                p.turnaround = p.completion;
+                p.waiting = p.turnaround - p.bt;
+            });
+
+            return {
+                processes,
+                gantt,
+                steps
+            };
+        }
+
+        function drawGantt(gantt) {
+            const container = document.getElementById('gantt-chart');
+            container.innerHTML = '';
+            if (gantt.length === 0) return;
+
+            const totalTime = gantt[gantt.length - 1].end;
+
+            gantt.forEach(seg => {
+                const width = ((seg.end - seg.start) / totalTime) * 100;
+                const bar = document.createElement('div');
+                bar.className = 'gantt-bar';
+                bar.style.backgroundColor = colors[(seg.pid - 1) % colors.length];
+                bar.style.width = width + '%';
+                bar.style.minWidth = '20px'; // agar tidak terlalu kecil
+
+                let text = `P${seg.pid}`;
+                // Khusus RR: tampilkan (sisa sebelum to sisa sesudah)
+                if (seg.prev !== undefined) {
+                    text += `<br><small>${seg.prev} to ${seg.remaining}</small>`;
+                }
+                bar.innerHTML = text;
+
+                const label = document.createElement('div');
+                label.className = 'gantt-label';
+                label.textContent = seg.start;
+                bar.appendChild(label);
+
+                container.appendChild(bar);
+            });
+
+            // Label waktu akhir
+            const endLabel = document.createElement('div');
+            endLabel.style.position = 'absolute';
+            endLabel.style.right = '8px';
+            endLabel.style.bottom = '6px';
+            endLabel.style.fontSize = '0.85rem';
+            endLabel.style.color = 'var(--cyan)';
+            endLabel.textContent = totalTime;
+            container.appendChild(endLabel);
+        }
+
+        function showResult(processes, gantt, rrSteps = null) {
+            let html = `
+        <table>
+            <tr><th>Proses</th><th>Burst Time</th><th>Waiting Time</th><th>Turnaround Time</th></tr>
+    `;
+
+            let totalWait = 0,
+                totalTAT = 0;
+            processes.forEach(p => {
+                const wait = p.waiting !== undefined ? p.waiting : p.start || 0;
+                const tat = p.turnaround !== undefined ? p.turnaround : p.end;
+                totalWait += wait;
+                totalTAT += tat;
+
+                html += `<tr>
+            <td>P${p.pid}</td>
+            <td>${p.bt}</td>
+            <td>${wait}</td>
+            <td>${tat}</td>
+        </tr>`;
+            });
+
+            html += `<tr style="background:var(--accent);font-weight:bold;">
+        <td colspan="2">Rata-rata</td>
+        <td>${(totalWait/5).toFixed(2)}</td>
+        <td>${(totalTAT/5).toFixed(2)}</td>
+    </tr></table>`;
+
+            // Jika Round Robin → tampilkan langkah-langkah detail
+            if (rrSteps && rrSteps.length > 0) {
+                html += `<div style="margin-top:20px; font-size:0.9rem; line-height:1.6;">
+            <strong>Langkah Eksekusi Round Robin (Quantum=3):</strong><br>`;
+                rrSteps.forEach(s => {
+                    html += `<span style="color:${colors[(s.pid-1)%5]}">P${s.pid}</span> 
+                     dieksekusi ${s.executed} unit → sisa: ${s.newRemaining} 
+                     (waktu: ${s.time})<br>`;
+                });
+                html += `</div>`;
+            }
+
+            document.getElementById('result-table').innerHTML = html;
+        }
+
+        // Tombol Jalankan
+        document.getElementById('run-btn').addEventListener('click', () => {
+            document.getElementById('log-content').innerHTML = '';
+            log('Memulai simulasi CPU Scheduling...', 'info');
+
+            try {
+                const burstTimes = getBurstTimes();
+                const algo = document.getElementById('algorithm').value;
+
+                let result;
+
+                if (algo === 'fcfs') {
+                    log('Algoritma: First Come First Served (FCFS)');
+                    result = fcfs(burstTimes);
+                } else if (algo === 'sjf') {
+                    log('Algoritma: Shortest Job First (Non-Preemptive)');
+                    result = sjf(burstTimes);
+                } else if (algo === 'rr') {
+                    log('Algoritma: Round Robin (Quantum = 3)');
+                    result = roundRobin(burstTimes, 3);
+                }
+
+                drawGantt(result.gantt);
+                showResult(result.processes, result.gantt, result.steps || null);
+
+                log('Simulasi selesai!', 'success');
+
+            } catch (err) {
+                log('Error: ' + err, 'error');
+            }
+        });
+
+        // Reset
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            document.getElementById('gantt-chart').innerHTML =
+                '<div style="padding:40px; text-align:center; opacity:0.5; color:var(--gray)">Gantt Chart akan muncul setelah simulasi dijalankan</div>';
+            document.getElementById('result-table').innerHTML = '';
+            document.getElementById('log-content').innerHTML = '';
+            log('Simulasi direset');
+        });
+
+        // Pesan selamat datang
+        window.onload = () => {
+            log('CPU Scheduling Simulator siap! Masukkan burst time lalu pilih algoritma.');
+        };
+    </script>
+</body>
+
+</html>

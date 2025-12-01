@@ -18,6 +18,8 @@
             --resource-color: #f72585;
             --button-bg: #293b5f;
             --button-hover: #3a5088;
+            --cyan: #4cc9f0;
+            --accent: rgba(79, 113, 157, 0.4);
         }
 
         * {
@@ -434,11 +436,136 @@
                 grid-column: span 1;
             }
         }
+
+        .burger {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(27, 38, 59, 0.8);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--accent);
+        }
+
+        .burger:hover {
+            background: rgba(65, 90, 119, 0.6);
+        }
+
+        .burger span {
+            width: 26px;
+            height: 3px;
+            background: var(--cyan);
+            margin: 3px 0;
+            border-radius: 3px;
+            transition: 0.3s;
+        }
+
+        .burger.active span:nth-child(1) {
+            transform: rotate(45deg) translate(6px, 6px);
+        }
+
+        .burger.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .burger.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -7px);
+        }
+
+        /* Menu Panel */
+        .menu-panel {
+            position: fixed;
+            top: 0;
+            left: -300px;
+            width: 300px;
+            height: 100vh;
+            background: rgba(27, 38, 59, 0.97);
+            backdrop-filter: blur(15px);
+            border-right: 1px solid var(--accent);
+            padding: 90px 30px 30px;
+            transition: left 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            z-index: 999;
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .menu-panel.open {
+            left: 0;
+        }
+
+        .menu-title {
+            font-size: 1.5rem;
+            color: var(--cyan);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .menu-item {
+            padding: 16px 20px;
+            margin: 10px 0;
+            background: rgba(65, 90, 119, 0.3);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .menu-item:hover {
+            background: var(--cyan);
+            color: #000;
+            transform: translateX(10px);
+        }
+
+        .menu-item.active {
+            background: var(--cyan);
+            color: #000;
+            font-weight: 600;
+        }
+
+        /* Overlay */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 998;
+        }
+
+        .overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
     </style>
+
 </head>
 
 <body>
-    <header>
+    <!-- Burger Menu -->
+    <div class="burger" id="burger">
+        <span></span><span></span><span></span>
+    </div>
+
+    <div class="menu-panel" id="menu">
+        <div class="menu-title">OS Simulators</div>
+        <div class="menu-item active" onclick="window.location.href='/index.html'">Deadlock Simulator</div>
+        <div class="menu-item" onclick="window.location.href='page/cpu_scheduling.html'">CPU Scheduling
+            Simulator</div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Judul utama (geser sedikit biar gak ketutup burger) -->
+    <header style="text-align:center; padding:20px 0 10px 60px;">
         <h1>Deadlock Simulation Dashboard</h1>
         <div class="subtitle">Visualize and understand resource allocation deadlocks in operating systems</div>
     </header>
@@ -534,6 +661,21 @@
     </div>
 
     <script>
+        const burger = document.getElementById('burger');
+        const menu = document.getElementById('menu');
+        const overlay = document.getElementById('overlay');
+
+        burger.addEventListener('click', () => {
+            burger.classList.toggle('active');
+            menu.classList.toggle('open');
+            overlay.classList.toggle('active');
+        });
+
+        overlay.addEventListener('click', () => {
+            burger.classList.remove('active');
+            menu.classList.remove('open');
+            overlay.classList.remove('active');
+        });
         // Simulation state
         let simulationState = {
             processes: ['P1', 'P2', 'P3', 'P4'],
@@ -547,13 +689,34 @@
 
         // Node positions
         const nodePositions = {
-            P1: { x: 150, y: 80 },
-            P2: { x: 300, y: 80 },
-            P3: { x: 300, y: 230 },
-            P4: { x: 150, y: 230 },
-            R1: { x: 80, y: 150 },
-            R2: { x: 230, y: 150 },
-            R3: { x: 370, y: 150 }
+            P1: {
+                x: 150,
+                y: 80
+            },
+            P2: {
+                x: 300,
+                y: 80
+            },
+            P3: {
+                x: 300,
+                y: 230
+            },
+            P4: {
+                x: 150,
+                y: 230
+            },
+            R1: {
+                x: 80,
+                y: 150
+            },
+            R2: {
+                x: 230,
+                y: 150
+            },
+            R3: {
+                x: 370,
+                y: 150
+            }
         };
 
         // DOM Elements
@@ -566,45 +729,153 @@
         function createFloatingElements() {
             const elements = [
                 // Binary numbers
-                { text: '0', type: 'binary' },
-                { text: '1', type: 'binary' },
-                { text: '01', type: 'binary' },
-                { text: '10', type: 'binary' },
-                { text: '101', type: 'binary' },
-                { text: '010', type: 'binary' },
-                { text: '1101', type: 'binary' },
-                { text: '0110', type: 'binary' },
+                {
+                    text: '0',
+                    type: 'binary'
+                },
+                {
+                    text: '1',
+                    type: 'binary'
+                },
+                {
+                    text: '01',
+                    type: 'binary'
+                },
+                {
+                    text: '10',
+                    type: 'binary'
+                },
+                {
+                    text: '101',
+                    type: 'binary'
+                },
+                {
+                    text: '010',
+                    type: 'binary'
+                },
+                {
+                    text: '1101',
+                    type: 'binary'
+                },
+                {
+                    text: '0110',
+                    type: 'binary'
+                },
                 // Symbols
-                { text: '{', type: 'symbol' },
-                { text: '}', type: 'symbol' },
-                { text: '<', type: 'symbol' },
-                { text: '>', type: 'symbol' },
-                { text: '/', type: 'symbol' },
-                { text: '\\', type: 'symbol' },
-                { text: '|', type: 'symbol' },
-                { text: '*', type: 'symbol' },
-                { text: '+', type: 'symbol' },
-                { text: '=', type: 'symbol' },
-                { text: '#', type: 'symbol' },
-                { text: '@', type: 'symbol' },
-                { text: '&', type: 'symbol' },
-                { text: '%', type: 'symbol' },
-                { text: '~', type: 'symbol' },
-                { text: '^', type: 'symbol' },
+                {
+                    text: '{',
+                    type: 'symbol'
+                },
+                {
+                    text: '}',
+                    type: 'symbol'
+                },
+                {
+                    text: '<',
+                    type: 'symbol'
+                },
+                {
+                    text: '>',
+                    type: 'symbol'
+                },
+                {
+                    text: '/',
+                    type: 'symbol'
+                },
+                {
+                    text: '\\',
+                    type: 'symbol'
+                },
+                {
+                    text: '|',
+                    type: 'symbol'
+                },
+                {
+                    text: '*',
+                    type: 'symbol'
+                },
+                {
+                    text: '+',
+                    type: 'symbol'
+                },
+                {
+                    text: '=',
+                    type: 'symbol'
+                },
+                {
+                    text: '#',
+                    type: 'symbol'
+                },
+                {
+                    text: '@',
+                    type: 'symbol'
+                },
+                {
+                    text: '&',
+                    type: 'symbol'
+                },
+                {
+                    text: '%',
+                    type: 'symbol'
+                },
+                {
+                    text: '~',
+                    type: 'symbol'
+                },
+                {
+                    text: '^',
+                    type: 'symbol'
+                },
                 // Hex numbers
-                { text: '0x', type: 'number' },
-                { text: 'A7', type: 'number' },
-                { text: 'FF', type: 'number' },
-                { text: '2E', type: 'number' },
-                { text: 'B4', type: 'number' },
-                { text: '3C', type: 'number' },
-                { text: '9D', type: 'number' },
+                {
+                    text: '0x',
+                    type: 'number'
+                },
+                {
+                    text: 'A7',
+                    type: 'number'
+                },
+                {
+                    text: 'FF',
+                    type: 'number'
+                },
+                {
+                    text: '2E',
+                    type: 'number'
+                },
+                {
+                    text: 'B4',
+                    type: 'number'
+                },
+                {
+                    text: '3C',
+                    type: 'number'
+                },
+                {
+                    text: '9D',
+                    type: 'number'
+                },
                 // Regular numbers
-                { text: '42', type: 'number' },
-                { text: '256', type: 'number' },
-                { text: '512', type: 'number' },
-                { text: '128', type: 'number' },
-                { text: '64', type: 'number' }
+                {
+                    text: '42',
+                    type: 'number'
+                },
+                {
+                    text: '256',
+                    type: 'number'
+                },
+                {
+                    text: '512',
+                    type: 'number'
+                },
+                {
+                    text: '128',
+                    type: 'number'
+                },
+                {
+                    text: '64',
+                    type: 'number'
+                }
             ];
 
             setInterval(() => {
@@ -781,7 +1052,8 @@
             timestamp.className = 'log-timestamp';
 
             const now = new Date();
-            timestamp.textContent = `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
+            timestamp.textContent =
+                `[${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}]`;
 
             entry.appendChild(timestamp);
             entry.appendChild(document.createTextNode(message));
@@ -808,10 +1080,16 @@
             const isAllocated = simulationState.allocations.some(a => a.from === resource);
 
             if (isAllocated) {
-                simulationState.requests.push({ from: process, to: resource });
+                simulationState.requests.push({
+                    from: process,
+                    to: resource
+                });
                 addLogEntry(`${process} is waiting for ${resource}`, 'info');
             } else {
-                simulationState.allocations.push({ from: resource, to: process });
+                simulationState.allocations.push({
+                    from: resource,
+                    to: process
+                });
                 addLogEntry(`${resource} allocated to ${process}`, 'success');
             }
 
@@ -833,9 +1111,13 @@
             const pendingRequest = simulationState.requests.find(r => r.to === resource);
 
             if (pendingRequest) {
-                const requestIndex = simulationState.requests.findIndex(r => r.from === pendingRequest.from && r.to === pendingRequest.to);
+                const requestIndex = simulationState.requests.findIndex(r => r.from === pendingRequest.from && r.to ===
+                    pendingRequest.to);
                 simulationState.requests.splice(requestIndex, 1);
-                simulationState.allocations.push({ from: resource, to: pendingRequest.from });
+                simulationState.allocations.push({
+                    from: resource,
+                    to: pendingRequest.from
+                });
                 addLogEntry(`${resource} allocated to waiting process ${pendingRequest.from}`, 'success');
             }
 
@@ -848,8 +1130,12 @@
             addLogEntry('Running deadlock detection algorithm...', 'info');
 
             const graph = {};
-            simulationState.processes.forEach(p => { graph[p] = []; });
-            simulationState.resources.forEach(r => { graph[r] = []; });
+            simulationState.processes.forEach(p => {
+                graph[p] = [];
+            });
+            simulationState.resources.forEach(r => {
+                graph[r] = [];
+            });
 
             simulationState.allocations.forEach(allocation => {
                 graph[allocation.from].push(allocation.to);
@@ -909,12 +1195,30 @@
             resetSimulation();
             addLogEntry('Creating a deadlock scenario...', 'info');
 
-            simulationState.allocations.push({ from: 'R1', to: 'P1' });
-            simulationState.allocations.push({ from: 'R2', to: 'P2' });
-            simulationState.allocations.push({ from: 'R3', to: 'P3' });
-            simulationState.requests.push({ from: 'P1', to: 'R2' });
-            simulationState.requests.push({ from: 'P2', to: 'R3' });
-            simulationState.requests.push({ from: 'P3', to: 'R1' });
+            simulationState.allocations.push({
+                from: 'R1',
+                to: 'P1'
+            });
+            simulationState.allocations.push({
+                from: 'R2',
+                to: 'P2'
+            });
+            simulationState.allocations.push({
+                from: 'R3',
+                to: 'P3'
+            });
+            simulationState.requests.push({
+                from: 'P1',
+                to: 'R2'
+            });
+            simulationState.requests.push({
+                from: 'P2',
+                to: 'R3'
+            });
+            simulationState.requests.push({
+                from: 'P3',
+                to: 'R1'
+            });
 
             addLogEntry('Deadlock scenario created. Run detection to find it.', 'info');
             updateEdges();
@@ -980,7 +1284,8 @@
             const selectedProcess = document.getElementById('process-select').value;
             const selectedResource = document.getElementById('resource-select').value;
 
-            const hasResource = simulationState.allocations.some(a => a.from === selectedResource && a.to === selectedProcess);
+            const hasResource = simulationState.allocations.some(a => a.from === selectedResource && a.to ===
+                selectedProcess);
 
             if (hasResource) {
                 releaseResource(selectedProcess, selectedResource);
