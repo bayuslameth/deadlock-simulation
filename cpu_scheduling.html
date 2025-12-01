@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CPU Scheduling Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d1b2a;
+            --panel: #1b263b;
+            --accent: #415a77;
+            --text: #e0e1dd;
+            --blue: #4361ee;
+            --pink: #f72585;
+            --cyan: #4cc9f0;
+            --green: #4ade80;
+            --red: #e94560;
+            --gray: #778da9;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100vh;
+            display: grid;
+            grid-template-columns: 340px 1fr 340px;
+            grid-template-rows: auto 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+        header {
+            grid-column: 1 / 4;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        h1 { font-size: 2rem; color: var(--cyan); }
+        .subtitle { opacity: 0.8; font-size: 0.95rem; }
+
+        .panel {
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+        }
+        .control-panel { grid-column: 1; }
+        .simulation-panel { grid-column: 2; }
+        .log-panel { grid-column: 3; overflow: hidden; }
+
+        .panel-title {
+            font-size: 1.1rem;
+            color: var(--cyan);
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--accent);
+        }
+
+        button {
+            background: #293b5f;
+            color: var(--text);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover { background: #3a5088; }
+        button.primary { background: var(--cyan); color: #000; font-weight: 600; }
+        button.red { background: var(--red); }
+
+        select, input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            background: var(--accent);
+            border: none;
+            border-radius: 6px;
+            color: var(--text);
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .gantt {
+            margin-top: 20px;
+            height: 80px;
+            background: var(--accent);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+        }
+        .gantt-bar {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1rem;
+            position: relative;
+        }
+        .gantt-label {
+            position: absolute;
+            bottom: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid var(--accent);
+        }
+        th { background: var(--accent); color: var(--cyan); }
+
+        #log-content {
+            flex: 1;
+            background: var(--accent);
+            border-radius: 8px;
+            padding: 15px;
+            overflow-y: auto;
+            font-family: 'Consolas', monospace;
+            font-size: 0.9rem;
+            margin-top: 10px;
+        }
+        .log-entry {
+            margin-bottom: 6px;
+            padding-left: 10px;
+            border-left: 3px solid var(--cyan);
+        }
+        .log-entry.error { border-left-color: var(--red); }
+        .log-entry.success { border-left-color: var(--green); }
+
+        .timestamp {
+            color: var(--gray);
+            font-size: 0.8rem;
+            margin-right: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>CPU Scheduling Simulator</h1>
+    <div class="subtitle">FCFS • SJF • Round Robin (Quantum = 3)</div>
+</header>
+
+<div class="panel control-panel">
+    <div class="panel-title">Pilih Algoritma</div>
+    <select id="algorithm">
+        <option value="fcfs">First Come First Served (FCFS)</option>
+        <option value="sjf">Shortest Job First (Non-Preemptive)</option>
+        <option value="rr">Round Robin (Quantum = 3)</option>
+    </select>
+
+    <div class="panel-title" style="margin-top:20px;">Burst Time (5 Proses)</div>
+    <div class="input-grid">
+        <input type="number" id="bt0" placeholder="P1" min="1" value="9">
+        <input type="number" id="bt1" placeholder="P2" min="1" value="6">
+        <input type="number" id="bt2" placeholder="P3" min="1" value="3">
+        <input type="number" id="bt3" placeholder="P4" min="1" value="6">
+        <input type="number" id="bt4" placeholder="P5" min="1" value="3">
+    </div>
+
+    <button class="primary" id="run-btn" style="margin-top:20px;">Jalankan Simulasi</button>
+    <button id="reset-btn">Reset</button>
+</div>
+
+<div class="panel simulation-panel">
+    <div class="panel-title">Gantt Chart</div>
+    <div id="gantt-chart" class="gantt"></div>
+
+    <div class="panel-title" style="margin-top:20px;">Hasil Eksekusi</div>
+    <div id="result-table"></div>
+</div>
+
+<div class="panel log-panel">
+    <div class="panel-title">Activity Log</div>
+    <div id="log-content"></div>
+</div>
+
+<script>
+const colors = ['#4361ee', '#7209b7', '#f72585', '#4cc9f0', '#4ade80'];
+
+function log(msg, type = 'info') {
+    const div = document.createElement('div');
+    div.className = `log-entry ${type}`;
+    const now = new Date();
+    const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+    div.innerHTML = `<span class="timestamp">[${time}]</span> ${msg}`;
+    document.getElementById('log-content').appendChild(div);
+    div.scrollIntoView({ behavior: 'smooth' });
+}
+
+function getBurstTimes() {
+    const bt = [];
+    for(let i=0; i<5; i++) {
+        const val = parseInt(document.getElementById(`bt${i}`).value) || 0;
+        if(val <= 0) throw "Burst time harus > 0";
+        bt.push(val);
+    }
+    return bt;
+}
+
+function fcfs(bt) {
+    const processes = bt.map((b,i) => ({pid: i+1, bt: b, remaining: b, start: -1, end: -1}));
+    let time = 0;
+    const gantt = [];
+
+    processes.forEach(p => {
+        p.start = time;
+        time += p.bt;
+        p.end = time;
+        gantt.push({pid: p.pid, start: p.start, end: p.end});
+    });
+
+    return {processes, gantt};
+}
+
+function sjf(bt) {
+    const processes = bt.map((b,i) => ({pid: i+1, bt: b, remaining: b, start: -1, end: -1}));
+    let time = 0;
+    const gantt = [];
+    const ready = [];
+
+    while(processes.some(p => p.remaining > 0) || ready.length > 0) {
+        // pindahkan proses yang sudah tiba (semua tiba di 0)
+        processes.forEach(p => {
+            if(p.remaining > 0 && !ready.includes(p)) ready.push(p);
+        });
+
+        if(ready.length === 0) break;
+
+        ready.sort((a,b) => a.remaining - b.remaining);
+        const p = ready.shift();
+
+        if(p.start === -1) p.start = time;
+        p.remaining = 0;
+        time += p.bt;
+        p.end = time;
+
+        gantt.push({pid: p.pid, start: p.start === -1 ? time-p.bt : p.start, end: time});
+    }
+    return {processes, gantt};
+}
+
+function roundRobin(bt, quantum = 3) {
+    const processes = bt.map((b,i) => ({pid: i+1, bt: b, remaining: b}));
+    const queue = [];
+    let time = 0;
+    const gantt = [];
+    const logSteps = [];
+
+    // semua proses tiba di waktu 0
+    for(let i=0; i<processes.length; i++) queue.push(processes[i]);
+
+    while(queue.length > 0) {
+        const p = queue.shift();
+        const exec = Math.min(quantum, p.remaining);
+
+        const prevRemaining = p.remaining;
+        p.remaining -= exec;
+        time += exec;
+
+        logSteps.push({
+            pid: p.pid,
+            executed: exec,
+            remaining: p.remaining,
+            prev: prevRemaining,
+            time: time
+        });
+
+        gantt.push({pid: p.pid, start: time-exec, end: time, executed: exec, prev: prevRemaining});
+
+        // cek proses baru yang bisa masuk antrian
+        // (karena semua tiba di 0, tidak perlu)
+
+        if(p.remaining > 0) {
+            queue.push(p);
+        }
+    }
+
+    return {processes, gantt, logSteps};
+}
+
+function drawGantt(gantt) {
+    const container = document.getElementById('gantt-chart');
+    container.innerHTML = '';
+    const totalTime = gantt[gantt.length-1].end;
+
+    gantt.forEach(seg => {
+        const bar = document.createElement('div');
+        bar.className = 'gantt-bar';
+        bar.style.backgroundColor = colors[(seg.pid-1)%colors.length];
+        bar.style.width = `${(seg.end - seg.start)/totalTime * 100}%`;
+        bar.innerHTML = `P${seg.pid}`;
+        if(seg.prev !== undefined) {
+            bar.innerHTML += `<br><small>${seg.prev-executed} → ${seg.remaining}</small>`;
+        }
+        const label = document.createElement('div');
+        label.className = 'gantt-label';
+        label.textContent = seg.start;
+        bar.appendChild(label);
+        container.appendChild(bar);
+    });
+
+    // waktu akhir
+    const endLabel = document.createElement('div');
+    endLabel.style.position = 'absolute';
+    endLabel.style.right = '5px';
+    endLabel.style.bottom = '4px';
+    endLabel.style.fontSize = '0.8rem';
+    endLabel.textContent = totalTime;
+    container.appendChild(endLabel);
+}
+
+function showResult(processes, gantt, rrSteps = null) {
+    let html = `
+        <table>
+            <tr><th>Proses</th><th>Burst Time</th><th>Waiting Time</th><th>Turnaround Time</th></tr>
+    `;
+
+    let totalWT = 0, totalTAT = 0;
+    processes.forEach(p => {
+        const wt = p.start;
+        const tat = p.end;
+        totalWT += wt;
+        totalTAT += tat;
+        html += `<tr>
+            <td>P${p.pid}</td>
+            <td>${p.bt}</td>
+            <td>${wt}</td>
+            <td>${tat}</td>
+        </tr>`;
+    });
+
+    html += `<tr style="background:var(--accent);font-weight:bold;">
+        <td colspan="2">Rata-rata</td>
+        <td>${(totalWT/5).toFixed(2)}</td>
+        <td>${(totalTAT/5).toFixed(2)}</td>
+    </tr></table>`;
+
+    if(rrSteps) {
+        html += `<div style="margin-top:15px;font-size:0.9rem;"><strong>Langkah Round Robin:</strong><br>`;
+        rrSteps.forEach(s => {
+            const sign = s.prev - s.executed;
+            html += `P${s.pid} ${s.executed} (${sign} → ${s.remaining})<br>`;
+        });
+        html += `</div>`;
+    }
+
+    document.getElementById('result-table').innerHTML = html;
+}
+
+document.getElementById('run-btn').addEventListener('click', () => {
+    document.getElementById('log-content').innerHTML = '';
+    log('Memulai simulasi...', 'info');
+
+    try {
+        const bt = getBurstTimes();
+        const algo = document.getElementById('algorithm').value;
+
+        let result;
+
+        if(algo === 'fcfs') {
+            log('Menjalankan FCFS');
+            result = fcfs(bt);
+        } else if(algo === 'sjf') {
+            log('Menjalankan SJF (Non-Preemptive)');
+            result = sjf(bt);
+        } else {
+            log('Menjalankan Round Robin (Quantum = 3)');
+            result = roundRobin(bt, 3);
+        }
+
+        drawGantt(result.gantt);
+
+        if(algo === 'rr') {
+            showResult(result.processes, result.gantt, result.logSteps);
+            result.logSteps.forEach(s => {
+                log(`P${s.pid} dieksekusi ${s.executed} unit (sisa: ${s.remaining})`);
+            });
+        } else {
+            showResult(result.processes, result.gantt);
+        }
+
+        log('Simulasi selesai!', 'success');
+
+    } catch(e) {
+        log(e, 'error');
+    }
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+    document.getElementById('gantt-chart').innerHTML = '<div style="padding:30px;text-align:center;opacity:0.5;">Gantt chart akan muncul di sini</div>';
+    document.getElementById('result-table').innerHTML = '';
+    document.getElementById('log-content').innerHTML = '';
+    log('Semua direset');
+});
+
+window.onload = () => {
+    log('CPU Scheduling Simulator siap. Masukkan burst time lalu pilih algoritma.');
+};
+</script>
+</body>
+</html>
