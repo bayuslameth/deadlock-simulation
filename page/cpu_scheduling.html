@@ -30,8 +30,9 @@
             font-family: 'Inter', sans-serif;
             background: var(--bg);
             color: var(--text);
-            height: 100vh;
+            min-height: 100vh;
             display: grid;
+            /* Layout Desktop Default: 3 Kolom */
             grid-template-columns: 340px 1fr 340px;
             grid-template-rows: auto 1fr;
             gap: 20px;
@@ -39,9 +40,10 @@
         }
 
         header {
-            grid-column: 1 / 4;
+            grid-column: 1 / -1; /* Span ke semua kolom */
             text-align: center;
             margin-bottom: 10px;
+            margin-top: 10px;
         }
 
         h1 {
@@ -54,6 +56,7 @@
             font-size: 0.95rem;
         }
 
+        /* --- Panel Styles --- */
         .panel {
             background: var(--panel);
             border-radius: 12px;
@@ -63,17 +66,13 @@
             flex-direction: column;
         }
 
-        .control-panel {
-            grid-column: 1;
-        }
-
-        .simulation-panel {
-            grid-column: 2;
-        }
-
-        .log-panel {
-            grid-column: 3;
+        .control-panel { grid-column: 1; }
+        .simulation-panel { grid-column: 2; }
+        .log-panel { 
+            grid-column: 3; 
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         .panel-title {
@@ -84,6 +83,7 @@
             border-bottom: 1px solid var(--accent);
         }
 
+        /* --- Inputs & Buttons --- */
         button {
             background: #293b5f;
             color: var(--text);
@@ -93,24 +93,14 @@
             font-size: 0.95rem;
             cursor: pointer;
             transition: all 0.2s;
+            margin-top: 5px;
         }
 
-        button:hover {
-            background: #3a5088;
-        }
+        button:hover { background: #3a5088; }
+        button.primary { background: var(--cyan); color: #000; font-weight: 600; }
+        button.red { background: var(--red); }
 
-        button.primary {
-            background: var(--cyan);
-            color: #000;
-            font-weight: 600;
-        }
-
-        button.red {
-            background: var(--red);
-        }
-
-        select,
-        input {
+        select, input {
             width: 100%;
             padding: 10px;
             margin: 8px 0;
@@ -126,14 +116,22 @@
             gap: 10px;
         }
 
+        /* --- Gantt Chart (Responsive Wrapper) --- */
+        .gantt-wrapper {
+            width: 100%;
+            overflow-x: auto; /* Agar bisa discroll di HP */
+            padding-bottom: 5px;
+        }
+
         .gantt {
             margin-top: 20px;
             height: 80px;
             background: var(--accent);
             border-radius: 8px;
-            overflow: hidden;
+            overflow: hidden; /* Penting untuk bar chart */
             position: relative;
             display: flex;
+            min-width: 600px; /* Lebar minimum agar chart tidak gepeng */
         }
 
         .gantt-bar {
@@ -156,24 +154,27 @@
             opacity: 0.9;
         }
 
+        /* --- Table (Responsive Wrapper) --- */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
             font-size: 0.9rem;
+            min-width: 400px; /* Agar tabel tidak hancur di HP */
         }
 
-        th,
-        td {
+        th, td {
             padding: 8px;
             text-align: center;
             border-bottom: 1px solid var(--accent);
         }
 
-        th {
-            background: var(--accent);
-            color: var(--cyan);
-        }
+        th { background: var(--accent); color: var(--cyan); }
 
         #log-content {
             flex: 1;
@@ -184,6 +185,7 @@
             font-family: 'Consolas', monospace;
             font-size: 0.9rem;
             margin-top: 10px;
+            max-height: 500px;
         }
 
         .log-entry {
@@ -192,20 +194,11 @@
             border-left: 3px solid var(--cyan);
         }
 
-        .log-entry.error {
-            border-left-color: var(--red);
-        }
+        .log-entry.error { border-left-color: var(--red); }
+        .log-entry.success { border-left-color: var(--green); }
+        .timestamp { color: var(--gray); font-size: 0.8rem; margin-right: 6px; }
 
-        .log-entry.success {
-            border-left-color: var(--green);
-        }
-
-        .timestamp {
-            color: var(--gray);
-            font-size: 0.8rem;
-            margin-right: 6px;
-        }
-
+        /* --- Menu & Overlay --- */
         .burger {
             position: fixed;
             top: 20px;
@@ -225,9 +218,7 @@
             border: 1px solid var(--accent);
         }
 
-        .burger:hover {
-            background: rgba(65, 90, 119, 0.6);
-        }
+        .burger:hover { background: rgba(65, 90, 119, 0.6); }
 
         .burger span {
             width: 26px;
@@ -238,19 +229,10 @@
             transition: 0.3s;
         }
 
-        .burger.active span:nth-child(1) {
-            transform: rotate(45deg) translate(6px, 6px);
-        }
+        .burger.active span:nth-child(1) { transform: rotate(45deg) translate(6px, 6px); }
+        .burger.active span:nth-child(2) { opacity: 0; }
+        .burger.active span:nth-child(3) { transform: rotate(-45deg) translate(7px, -7px); }
 
-        .burger.active span:nth-child(2) {
-            opacity: 0;
-        }
-
-        .burger.active span:nth-child(3) {
-            transform: rotate(-45deg) translate(7px, -7px);
-        }
-
-        /* Menu Panel */
         .menu-panel {
             position: fixed;
             top: 0;
@@ -266,9 +248,7 @@
             box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
         }
 
-        .menu-panel.open {
-            left: 0;
-        }
+        .menu-panel.open { left: 0; }
 
         .menu-title {
             font-size: 1.5rem;
@@ -299,7 +279,6 @@
             font-weight: 600;
         }
 
-        /* Overlay */
         .overlay {
             position: fixed;
             inset: 0;
@@ -310,22 +289,54 @@
             z-index: 998;
         }
 
-        .overlay.active {
-            opacity: 1;
-            visibility: visible;
+        .overlay.active { opacity: 1; visibility: visible; }
+
+        /* =========================================
+           MEDIA QUERIES (RESPONSIVE FIX)
+           ========================================= */
+        
+        /* Tablet & Mobile (Layar di bawah 1024px) */
+        @media (max-width: 1024px) {
+            body {
+                display: flex;
+                flex-direction: column; /* Stack vertikal */
+                padding: 15px;
+                padding-top: 80px; /* Beri ruang untuk header/burger */
+            }
+
+            .panel {
+                margin-bottom: 20px;
+            }
+
+            .control-panel, .simulation-panel, .log-panel {
+                grid-column: auto; /* Reset grid column */
+            }
+
+            h1 { font-size: 1.5rem; }
+
+            .input-grid {
+                grid-template-columns: repeat(3, 1fr); /* Input jadi 3 kolom di tablet */
+            }
         }
 
-        /* Main Content (sama seperti sebelumnya) */
-        header {
-            text-align: center;
+        /* Mobile Kecil (Layar di bawah 600px) */
+        @media (max-width: 600px) {
+            .input-grid {
+                grid-template-columns: 1fr; /* Input jadi 1 kolom di HP */
+            }
             
+            .burger {
+                top: 15px;
+                left: 15px;
+                width: 45px;
+                height: 45px;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <!-- Burger Menu -->
     <div class="burger" id="burger">
         <span></span><span></span><span></span>
     </div>
@@ -333,14 +344,14 @@
     <div class="menu-panel" id="menu">
         <div class="menu-title">OS Simulators</div>
         <div class="menu-item" onclick="window.location.href='../index.html'">Deadlock Simulator</div>
-        <div class="menu-item active" onclick="window.location.href='/page/cpu_scheduling.html'">CPU Scheduling
-            Simulator</div>
+        <div class="menu-item active" onclick="window.location.href='/page/cpu_scheduling.html'">CPU Scheduling Simulator</div>
     </div>
 
     <div class="overlay" id="overlay"></div>
+
     <header>
         <h1 class="h1">CPU Scheduling Simulator</h1>
-        <div class="subtitle">FCFS  SJF  Round Robin (Quantum = 3)</div>
+        <div class="subtitle">FCFS &nbsp; SJF &nbsp; Round Robin (Quantum = 3)</div>
     </header>
 
     <div class="panel control-panel">
@@ -366,10 +377,14 @@
 
     <div class="panel simulation-panel">
         <div class="panel-title">Gantt Chart</div>
-        <div id="gantt-chart" class="gantt"></div>
+        <div class="gantt-wrapper">
+            <div id="gantt-chart" class="gantt"></div>
+        </div>
 
         <div class="panel-title" style="margin-top:20px;">Hasil Eksekusi</div>
-        <div id="result-table"></div>
+        <div class="table-wrapper">
+            <div id="result-table"></div>
+        </div>
     </div>
 
     <div class="panel log-panel">
@@ -378,6 +393,7 @@
     </div>
 
     <script>
+        // --- LOGIKA MENU DIKEMBALIKAN KE ORIGINAL ---
         const burger = document.getElementById('burger');
         const menu = document.getElementById('menu');
         const overlay = document.getElementById('overlay');
@@ -394,6 +410,7 @@
             overlay.classList.remove('active');
         });
 
+        // --- LOGIKA UTAMA (TIDAK BERUBAH) ---
         const colors = ['#4361ee', '#7209b7', '#f72585', '#4cc9f0', '#4ade80'];
 
         function log(msg, type = 'info') {
@@ -461,14 +478,12 @@
             const ready = [];
 
             while (processes.some(p => p.remaining > 0)) {
-                // Tambahkan semua proses yang sudah "tiba" (semua tiba di waktu 0)
                 processes.forEach(p => {
                     if (p.remaining > 0 && !ready.includes(p)) ready.push(p);
                 });
 
                 if (ready.length === 0) break;
 
-                // Urutkan berdasarkan burst time terkecil
                 ready.sort((a, b) => a.remaining - b.remaining);
                 const current = ready.shift();
 
@@ -489,7 +504,7 @@
             };
         }
 
-        // ROUND ROBIN – DIPERBAIKI & LEBIH BAGUS
+        // ROUND ROBIN
         function roundRobin(bt, quantum = 3) {
             const processes = bt.map((b, i) => ({
                 pid: i + 1,
@@ -498,10 +513,9 @@
             }));
             const queue = [];
             let time = 0;
-            const gantt = []; // untuk chart
-            const steps = []; // untuk log & tabel RR
+            const gantt = []; 
+            const steps = []; 
 
-            // Semua proses tiba di waktu 0
             processes.forEach(p => queue.push(p));
 
             while (queue.length > 0) {
@@ -512,7 +526,6 @@
                 p.remaining -= executed;
                 time += executed;
 
-                // Simpan langkah untuk ditampilkan
                 steps.push({
                     pid: p.pid,
                     executed: executed,
@@ -521,7 +534,6 @@
                     time: time
                 });
 
-                // Simpan segmen gantt (dengan info tambahan untuk tampilan)
                 gantt.push({
                     pid: p.pid,
                     start: time - executed,
@@ -531,16 +543,12 @@
                     remaining: p.remaining
                 });
 
-                // Jika masih ada sisa, masukkan kembali ke antrian
                 if (p.remaining > 0) {
                     queue.push(p);
                 }
             }
 
-            // Hitung waiting & turnaround time untuk tabel akhir
             processes.forEach(p => {
-                const completedAt = gantt.filter(seg => seg.pid === p.pid).reduce((sum, seg) => sum + seg.executed,
-                    0);
                 const lastSegment = gantt.filter(seg => seg.pid === p.pid).pop();
                 p.completion = lastSegment.end;
                 p.turnaround = p.completion;
@@ -567,10 +575,9 @@
                 bar.className = 'gantt-bar';
                 bar.style.backgroundColor = colors[(seg.pid - 1) % colors.length];
                 bar.style.width = width + '%';
-                bar.style.minWidth = '20px'; // agar tidak terlalu kecil
+                bar.style.minWidth = '20px'; 
 
                 let text = `P${seg.pid}`;
-                // Khusus RR: tampilkan (sisa sebelum to sisa sesudah)
                 if (seg.prev !== undefined) {
                     text += `<br><small>${seg.prev} to ${seg.remaining}</small>`;
                 }
@@ -584,7 +591,6 @@
                 container.appendChild(bar);
             });
 
-            // Label waktu akhir
             const endLabel = document.createElement('div');
             endLabel.style.position = 'absolute';
             endLabel.style.right = '8px';
@@ -623,7 +629,6 @@
         <td>${(totalTAT/5).toFixed(2)}</td>
     </tr></table>`;
 
-            // Jika Round Robin → tampilkan langkah-langkah detail
             if (rrSteps && rrSteps.length > 0) {
                 html += `<div style="margin-top:20px; font-size:0.9rem; line-height:1.6;">
             <strong>Langkah Eksekusi Round Robin (Quantum=3):</strong><br>`;
@@ -638,7 +643,6 @@
             document.getElementById('result-table').innerHTML = html;
         }
 
-        // Tombol Jalankan
         document.getElementById('run-btn').addEventListener('click', () => {
             document.getElementById('log-content').innerHTML = '';
             log('Memulai simulasi CPU Scheduling...', 'info');
@@ -670,7 +674,6 @@
             }
         });
 
-        // Reset
         document.getElementById('reset-btn').addEventListener('click', () => {
             document.getElementById('gantt-chart').innerHTML =
                 '<div style="padding:40px; text-align:center; opacity:0.5; color:var(--gray)">Gantt Chart akan muncul setelah simulasi dijalankan</div>';
@@ -679,7 +682,6 @@
             log('Simulasi direset');
         });
 
-        // Pesan selamat datang
         window.onload = () => {
             log('CPU Scheduling Simulator siap! Masukkan burst time lalu pilih algoritma.');
         };
